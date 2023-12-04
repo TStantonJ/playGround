@@ -1,5 +1,5 @@
 from lstm_model import LSTM_VOCAB
-from mlp_model import Sequential
+from mlp_model import Sequential, MLP
 
 #Imports
 
@@ -83,7 +83,7 @@ def prepare_data(data, vocab, input_field):
     for _, row in data.iterrows():
         words = row[input_field].split()
         tags = row["label"]
-        word_ids = torch.tensor(vocab.index_words(words), dtype=torch.long).to(DEVICE)
+        word_ids = torch.tensor(vocab.index_words(words), dtype=torch.float).to(DEVICE)
         tag_ids = torch.tensor(vocab.index_tags(tags), dtype=torch.long).to(DEVICE)
         data_sequences.append([word_ids, tag_ids])
 
@@ -182,81 +182,23 @@ hidden_sizes = [300, 500]
 output_size = len(vocab.id2tag)
 n_layers = [2,3]
 directions = [2]
-n_epochs = 10
-dropouts = [0.2]
-batch_sizes = [32]
+n_epochs = 50
+dropout = 0.2
+batch_size = 32
 result_df = pd.DataFrame([])
-'''
+print(output_size)
+
 print("Train only on Titles SEQ")
-for hidden_size in hidden_sizes:
-    for layers in n_layers:
-        for direction in directions:
-            for dropout in dropouts:
-                for batch_size in batch_sizes:
-                    caption = f"hidden_size - {hidden_size}, n_layers - {layers}, directions - {direction}, dropout {dropout}"
-                    print(caption)
-                    model = Sequential(input_size, embedding_size, hidden_size, output_size, layers, direction, dropout)
-                    train_loop(model, n_epochs, batch_size, title_train_sequences, title_test_sequences)
-                    train_accuracy = evaluate(title_train_sequences, batch_size)
-                    test_accuracy = evaluate(title_test_sequences, batch_size)
-                    temp_df = pd.DataFrame([[train_accuracy, test_accuracy]], index=[caption], columns=["training_accuracy", "test_accuracy"])
-                    pd.concat([result_df, temp_df], ignore_index=True)
-'''
-#Only title
-print("Train only on Titles")
-for hidden_size in hidden_sizes:
-    for layers in n_layers:
-        for direction in directions:
-            for dropout in dropouts:
-                for batch_size in batch_sizes:
-                    caption = f"hidden_size - {hidden_size}, n_layers - {layers}, directions - {direction}, dropout {dropout}"
-                    print(caption)
-                    model = LSTM_VOCAB(input_size, embedding_size, hidden_size, output_size, layers, direction, dropout)
-                    train_loop(model, n_epochs, batch_size, title_train_sequences, title_test_sequences)
-                    train_accuracy = evaluate(title_train_sequences, batch_size)
-                    test_accuracy = evaluate(title_test_sequences, batch_size)
-                    temp_df = pd.DataFrame([[train_accuracy, test_accuracy]], index=[caption], columns=["training_accuracy", "test_accuracy"])
-                    pd.concat([result_df, temp_df], ignore_index=True)
 
-# PreProcess data
-text_sequences, vocab = prepare_data(df_raw, vocab, "text")
-text_x = [i[0] for i in text_sequences]
-text_y = [i[1] for i in text_sequences]
+caption = f"hidden_size - {300},  dropout {dropout}"
+#model = Sequential(input_size, embedding_size, 300, output_size)
+hidden_sizes = [300, 500, 300]   # List of hidden layer sizes
+output_size = len(vocab.id2tag)  # Output size
 
-# pad sentences to use batches
-text_padded_x = torch.nn.utils.rnn.pad_sequence(text_x, batch_first=True)
-text_x = [i for i in text_padded_x]
-
-text_x_train, text_x_test, text_y_train, text_y_test = train_test_split(text_x, text_y, test_size=0.2, random_state=42)
-text_test_sequences = list(zip(text_x_test,text_y_test))
-text_test_sequences = [list(x) for x in text_test_sequences]
-text_train_sequences = list(zip(text_x_train,text_y_train))
-text_train_sequences = [list(x) for x in text_train_sequences]
-
-input_size = vocab.n_words
-embedding_size = 300
-hidden_sizes = [500]
-output_size = len(vocab.id2tag)
-n_layers = [2]
-directions = [2]
-n_epochs = 6
-dropouts = [0.2]
-batch_sizes = [32]
-result_df = pd.DataFrame([])
-
-
-#Only on text
-print("Train only on Text")
-for hidden_size in hidden_sizes:
-    for layers in n_layers:
-        for direction in directions:
-            for dropout in dropouts:
-                for batch_size in batch_sizes:
-                    caption = f"hidden_size - {hidden_size}, n_layers - {layers}, directions - {direction}, dropout {dropout}"
-                    print(caption)
-                    model = LSTM_VOCAB(input_size, embedding_size, hidden_size, output_size, layers, direction, dropout)
-                    train_loop(model, n_epochs, batch_size, text_train_sequences, text_test_sequences)
-                    train_accuracy = evaluate(text_train_sequences, batch_size)
-                    test_accuracy = evaluate(text_test_sequences, batch_size)
-                    temp_df = pd.DataFrame([[train_accuracy, test_accuracy]], index=[caption], columns=["training_accuracy", "test_accuracy"])
-                    pd.concat([result_df, temp_df], ignore_index=True)
+# Example instantiation and usage:
+model = MLP(53, hidden_sizes, output_size, dropout=0.2)
+train_loop(model, n_epochs, batch_size, title_train_sequences, title_test_sequences)
+train_accuracy = evaluate(title_train_sequences, batch_size)
+test_accuracy = evaluate(title_test_sequences, batch_size)
+temp_df = pd.DataFrame([[train_accuracy, test_accuracy]], index=[caption], columns=["training_accuracy", "test_accuracy"])
+pd.concat([result_df, temp_df], ignore_index=True)

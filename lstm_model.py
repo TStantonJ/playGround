@@ -14,6 +14,7 @@ class LSTM_VOCAB(nn.Module):
         self.n_layers = n_layers
         self.directions = directions
         self.bidirectional = True if directions == 2 else False
+
         self.embedding = nn.Embedding(input_size, embedding_size)
         self.lstm = nn.LSTM(embedding_size, hidden_size, n_layers, bidirectional=self.bidirectional, batch_first=True)
         self.fc1 = nn.Linear(hidden_size*directions, hidden_size)
@@ -28,5 +29,6 @@ class LSTM_VOCAB(nn.Module):
         hidden = torch.cat((hidden[-2, :, :], hidden[-1, :, :]), dim=1)
         output = self.dropout(self.fc1(hidden))
         output = self.out(output)
+        print(output.shape)
 
         return output
